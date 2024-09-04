@@ -1,0 +1,94 @@
+import tkinter as tk
+
+def calculate():
+    try:
+        retail_price = float(retail_entry.get())
+        discount_type = discount_var.get()
+        if discount_type == "Cash" or discount_type == "Both":
+            cash_discount = float(cash_entry.get())
+            discounted_price = retail_price - cash_discount
+        elif discount_type == "Percent" or discount_type == "Both":
+            percentage_discount = float(percent_entry.get())
+            percentage_discount_amount = (percentage_discount / 100) * retail_price
+            discounted_price = retail_price - percentage_discount_amount
+        else:
+            discounted_price = retail_price
+        
+        tax_location = tax_var.get()
+        if tax_location == "CT":
+            tax = 6.35
+        elif tax_location == "NOLA":
+            tax = 9.45
+        else:
+            tax = float(tax_entry.get())
+
+        total_price = discounted_price + (discounted_price * (tax / 100))
+        total_price_label.config(text="Total Price: $%.2f" % total_price)
+
+        ebay_break_even = total_price / (1 - 0.1325) + 0.30
+        stockx_break_even = (total_price + 4) / (1 - 0.09 - 0.03)
+        goat_break_even = (total_price + 5) / (1 - 0.095 - 0.029)
+
+        ebay_label.config(text="eBay Break Even: $%.2f" % ebay_break_even)
+        stockx_label.config(text="StockX Break Even: $%.2f" % stockx_break_even)
+        goat_label.config(text="Goat Break Even: $%.2f" % goat_break_even)
+
+    except ValueError:
+        total_price_label.config(text="Please enter valid numbers.")
+
+root = tk.Tk()
+root.title("Break Even Calculator")
+
+# Retail Price
+retail_label = tk.Label(root, text="Retail Price:")
+retail_label.grid(row=0, column=0)
+retail_entry = tk.Entry(root)
+retail_entry.grid(row=0, column=1)
+
+# Discount
+discount_label = tk.Label(root, text="Discount Type:")
+discount_label.grid(row=1, column=0)
+discount_var = tk.StringVar(root)
+discount_var.set("None")
+discount_menu = tk.OptionMenu(root, discount_var, "None", "Cash", "Percent", "Both")
+discount_menu.grid(row=1, column=1)
+
+cash_label = tk.Label(root, text="Cash Discount:")
+cash_label.grid(row=2, column=0)
+cash_entry = tk.Entry(root)
+cash_entry.grid(row=2, column=1)
+
+percent_label = tk.Label(root, text="Percent Discount:")
+percent_label.grid(row=3, column=0)
+percent_entry = tk.Entry(root)
+percent_entry.grid(row=3, column=1)
+
+# Tax
+tax_label = tk.Label(root, text="Tax Location:")
+tax_label.grid(row=4, column=0)
+tax_var = tk.StringVar(root)
+tax_var.set("CT")
+tax_menu = tk.OptionMenu(root, tax_var, "CT", "NOLA", "Other")
+tax_menu.grid(row=4, column=1)
+
+tax_entry = tk.Entry(root)
+tax_entry.grid(row=5, column=1)
+
+# Calculate Button
+calculate_button = tk.Button(root, text="Calculate", command=calculate)
+calculate_button.grid(row=6, columnspan=2)
+
+# Result Labels
+total_price_label = tk.Label(root, text="")
+total_price_label.grid(row=7, columnspan=2)
+
+ebay_label = tk.Label(root, text="")
+ebay_label.grid(row=8, columnspan=2)
+
+stockx_label = tk.Label(root, text="")
+stockx_label.grid(row=9, columnspan=2)
+
+goat_label = tk.Label(root, text="")
+goat_label.grid(row=10, columnspan=2)
+
+root.mainloop()

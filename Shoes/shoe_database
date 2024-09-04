@@ -1,0 +1,44 @@
+import sqlite3 
+
+# Connect to SQLite database or create if it doesn't exist
+conn = sqlite3.connect('jordan_sales.db')
+
+# Create a cursor object to execute SQL commands
+cursor = conn.cursor()
+
+# Execute SQL command (e.g., create a table)
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS JordanSales (
+        SaleID INTEGER PRIMARY KEY AUTOINCREMENT,
+        Model TEXT,
+        Size REAL,
+        Color TEXT,
+        SalePrice REAL,
+        BuyerID INTEGER,
+        SellerID INTEGER,
+        SaleDate TEXT,
+        Condition TEXT
+    )
+''')
+
+# Save changes and close the connection
+conn.commit()
+conn.close()
+
+"""
+1. Connect to the Database: Use the connect() function from the sqlite3 module to establish a connection to the database. 
+If the database doesn't exist, it will be created.
+
+2. Create Tables: Use the execute() method on the cursor object to execute SQL commands that create tables and define their structure.
+
+3 Commit Changes: After executing commands that modify the database structure (e.g., creating tables),
+ use the commit() method on the connection object to save the changes to the database.
+This code demonstrates connecting to a database file named jordan_sales.db, creating a table named JordanSales, 
+and defining the columns for storing Jordan sales information. You can modify the table schema and column names according to your requirements.
+
+After establishing the connection and defining the table structure, you can perform various operations like inserting data, querying, updating, 
+and deleting records within your Python code using the sqlite3 module.
+
+Remember to handle exceptions, commit changes after modifications, 
+and properly close the database connection to ensure data integrity and prevent potential issues.
+ """

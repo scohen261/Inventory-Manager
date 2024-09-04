@@ -1,0 +1,34 @@
+{
+  "Brian": {
+    "Nike Air Max": {
+      "size": "10",
+      "color": "Black",
+      "price": "$120",
+      "condition": "New"
+    },
+    "Adidas Superstar": {
+      "size": "9",
+      "color": "White",
+      "price": "$80",
+      "condition": "New"
+    },
+    "Puma RS-X": {
+      "size": "11",
+      "color": "Red",
+      "price": "$100",
+      "condition": "New"
+    },
+    "Converse Heineken": {
+      "size": "11",
+      "color": "Green",
+      "price": "0",
+      "condition": "New"
+    },
+    "Jordan 3 A Ma Maniere": {
+      "size": "13",
+      "color": "White",
+      "price": "225",
+      "condition": "New"
+    }
+  }
+}
