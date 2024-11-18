@@ -1,16 +1,138 @@
 import requests
+from typing import Dict, Optional, Union, List
+import json
+from datetime import datetime
+from dataclasses import dataclass
 
-id = "Some product slug/UUID"
-url = f"https://api.sneakersapi.dev/product/{id}"
+@dataclass
+class SneakerProduct:
+    id: str
+    name: str
+    brand: str
+    model: str
+    sku: Optional[str] = None
+    retail_price: Optional[float] = None
+    current_price: Optional[float] = None
+    release_date: Optional[str] = None
+    
+    @classmethod
+    def from_api_response(cls, data: Dict) -> 'SneakerProduct':
+        """Create a SneakerProduct instance from API response data"""
+        return cls(
+            id=data.get('id', ''),
+            name=data.get('name', ''),
+            brand=data.get('brand', ''),
+            model=data.get('model', ''),
+            sku=data.get('sku'),
+            retail_price=data.get('retailPrice'),
+            current_price=data.get('currentPrice'),
+            release_date=data.get('releaseDate')
+        )
 
-response = requests.request("GET", url)
+class SneakerAPI:
+    def __init__(self, base_url: str = "https://api.sneakersapi.dev"):
+        self.base_url = base_url.rstrip('/')
+        self.session = requests.Session()
+        
+    def get_product(self, product_id: str) -> Optional[SneakerProduct]:
+        """
+        Get detailed information about a specific product by ID.
+        
+        Args:
+            product_id (str): Product ID or slug
+            
+        Returns:
+            Optional[SneakerProduct]: Product information if found, None if not found
+        """
+        try:
+            url = f"{self.base_url}/product/{product_id}"
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            return SneakerProduct.from_api_response(data)
+            
+        except requests.RequestException as e:
+            print(f"Error fetching product {product_id}: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            print(f"Error parsing response for product {product_id}: {e}")
+            return None
+            
+    def search_products(self, query: str) -> List[SneakerProduct]:
+        """
+        Search for products using a query string.
+        
+        Args:
+            query (str): Search query (e.g., "Air Jordan 1 Low Diamond Shorts")
+            
+        Returns:
+            List[SneakerProduct]: List of matching products
+        """
+        try:
+            url = f"{self.base_url}/search"
+            params = {"query": query}
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            # Assuming the API returns a list of products in a 'results' field
+            products = data.get('results', [])
+            return [SneakerProduct.from_api_response(product) for product in products]
+            
+        except requests.RequestException as e:
+            print(f"Error searching for '{query}': {e}")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"Error parsing search results for '{query}': {e}")
+            return []
 
-print(response.text)
+def format_price(price: Optional[float]) -> str:
+    """Format price with currency symbol and 2 decimal places"""
+    if price is None:
+        return "N/A"
+    return f"${price:,.2f}"
 
-url = "https://api.sneakersapi.dev/search"
+def print_product(product: SneakerProduct) -> None:
+    """Print formatted product information"""
+    print("\nProduct Details")
+    print("=" * 50)
+    print(f"Name: {product.name}")
+    print(f"Brand: {product.brand}")
+    print(f"Model: {product.model}")
+    if product.sku:
+        print(f"SKU: {product.sku}")
+    print(f"Retail Price: {format_price(product.retail_price)}")
+    print(f"Current Price: {format_price(product.current_price)}")
+    if product.release_date:
+        print(f"Release Date: {product.release_date}")
+    print(f"Product ID: {product.id}")
 
-querystring = {"query":"Adidas NMD"}
+def main():
+    """Main function to demonstrate both API endpoints"""
+    api = SneakerAPI()
+    
+    # Example 1: Get specific product
+    product_id = input("Enter product ID (or press Enter to skip): ").strip()
+    if product_id:
+        product = api.get_product(product_id)
+        if product:
+            print_product(product)
+        else:
+            print(f"Product not found: {product_id}")
+    
+    # Example 2: Search for products
+    search_query = input("\nEnter search query (or press Enter to skip): ").strip()
+    if search_query:
+        products = api.search_products(search_query)
+        if products:
+            print(f"\nFound {len(products)} matching products:")
+            for i, product in enumerate(products, 1):
+                print(f"\nResult {i}:")
+                print_product(product)
+        else:
+            print(f"No products found matching '{search_query}'")
 
-response = requests.request("GET", url, params=querystring)
-
-print (response.text)
+if __name__ == "__main__":
+    main()
