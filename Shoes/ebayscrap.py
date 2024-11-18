@@ -2,14 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# goal is to scrape ebay, the code will prompt the user to provide the SKU of the item
-# they are searching for, then the size, condition, and any other speicifics they have
-# then using that the  code will scrape ebay and provide the last sold item/date, volume of sales last 90 days
-# average sale price, and the high/low sales price
-# Define the base URL for the eBay search
-
-
-# Define the eBay filters dictionary
 ebay_filters = {
     "item_conditions": {
         "New": 1000,
@@ -40,6 +32,37 @@ ebay_filters = {
         "Business & Industrial": 12576,
         "Automotive": 6000, 
     },
+    "subdirectories":{
+        "Costumes, Reenactment, Theater": 112425,
+        "Men's Accessories": 4250,
+        "ID & Document Holders": 169271,
+        "Sunglasses & Sunglasses Accessories": 179239,
+        "Men's Clothing": 1059,
+        "Men's Shoes": 93427,
+        "Unisex Clothing, Shoes & Accs": 155184,
+        "Women's Shoes": 3034,
+        "Vintage": 175759,
+    },
+    "Men's Shoes Subdirectories":{
+        "Athletic Shoes": 15709,
+        "Boots": 11498,
+        "Casual Shoes": 24087,
+        "Dress Shoes": 53120,
+        "Occupational": 11501,
+        "Sandals": 11504,
+        "Slippers": 11505,
+        "Mixed Items & Lots": 63850,
+    },
+    "Women's Shoes Subdirectories":{
+        "Athletic Shoes": 15709,
+        "Boots": 11498,
+        "Casual Shoes": 24087,
+        "Dress Shoes": 53120,
+        "Occupational": 11501,
+        "Sandals": 11504,
+        "Slippers": 11505,
+        "Mixed Items & Lots": 63850,
+    },
     "categories": {
         "No Category": 0,
         "Cell Phones & Smartphones": 9355,
@@ -68,6 +91,7 @@ ebay_filters = {
     }
 }
 
+# Define the base URL for the eBay search
 url = "https://www.ebay.com/sch/i.html"
 
 # Define the query parameters for the search request
@@ -76,8 +100,8 @@ params = {
     '_nkw': 'iphone 13',
     'LH_ItemCondition': ebay_filters["item_conditions"]["Used"],  # Item condition; 'New'.
     'LH_PrefLoc': ebay_filters["item_locations"]["International"],
-    '_udlo': '200',  # Minimum price.
-    '_udhi': '400',  # Maximum price.
+    '_udlo': '0',  # Minimum price.
+    '_udhi': '10000',  # Maximum price.
     '_dcat': ebay_filters["directories"]["No Directory"],  # Filter by directory ID; "Consumer Electronics".
     '_sacat': ebay_filters["categories"]["No Category"],  # Filter by category ID; "Cell Phones & Smartphones".
     '_sop': ebay_filters["sort_order"]["Time: newly listed"],  # Sort by "Time: newly listed"
@@ -92,11 +116,10 @@ params = {
     
 }
 
-request =requests.Request('GET', url, params=params)
-prepared_request = requests.prepare()
+# Create a prepared request to inspect the full URL
+request  =requests.Request('GET', url, params=params)
+prepared_request = request.prepare()
 print(prepared_request.url)
-
-#initialize variables
 
 # Initialize variables
 page_number = 0
@@ -147,38 +170,40 @@ while True:
             # Append the dictionary to the list
             items_list.append(item_dict)
 
-            len(items_list)
-            items_df = pd.DataFrame(items_list)
-            items_df
+    len(items_list)
+
+    items_df = pd.DataFrame(items_list)
+    items_df
+
+    forbidden_terms = [
+    'refurbished',
+    'iphone 12',
+    'parts',
+    'damaged',
+    'locked',
+    'pro',
+    'mini',
+    '256 gb',
+    '512 gb',
+    'verizon',
+    'at&t', 
+    't-mobile',
+    'cricket',
+    'metro',
+    'boost',
+    'read description'
+]
+
+mask = ~items_df['Title'].str.lower().str.contains(r'\b(?:' + '|'.join(forbidden_terms) + r')\b')
+
+# Apply the mask to filter the DataFrame
+filtered_df = items_df[mask]
 
 
-            forbidden_terms = [
-                'refurbished',
-                'iphone 12',
-                'parts',
-                'damaged',
-                'locked',
-                'pro',
-                'mini',
-                '256 gb',
-                '512 gb',
-                'verizon',
-                'at&t', 
-                't-mobile',
-                'cricket',
-                'metro',
-                'boost',
-                'read description'               
-            ]
+# Reset the index of the filtered DataFrame
+filtered_df = filtered_df.reset_index(drop=True)
 
-            # Create a boolean mask for filtering out forbidden terms
-            mask = ~items_df['Title'].str.lower().str.contains(r'\b(?:' + '|'.join(forbidden_terms) + r')\b')
+filtered_df
 
-            # Apply the mask to filter the DataFrame
-            filtered_df = items_df[mask]
+filtered_df.to_csv('/Users/brian/Downloads/testfile.csv', index=False)
 
-
-            # Reset the index of the filtered DataFrame
-            filtered_df = filtered_df.reset_index(drop=True)
-
-                        
