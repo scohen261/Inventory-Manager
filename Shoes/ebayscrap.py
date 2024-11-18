@@ -92,7 +92,7 @@ params = {
     
 }
 
-request =requests.Requst('GET', url, params=params)
+request =requests.Request('GET', url, params=params)
 prepared_request = requests.prepare()
 print(prepared_request.url)
 
@@ -148,7 +148,7 @@ while True:
             items_list.append(item_dict)
 
             len(items_list)
-            items_df = pd.DataFram(items_list)
+            items_df = pd.DataFrame(items_list)
             items_df
 
 
