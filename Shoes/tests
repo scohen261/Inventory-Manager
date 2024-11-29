@@ -1,0 +1,61 @@
+# tests/test_ebayscrap.py
+
+import unittest
+from unittest.mock import patch, MagicMock
+from datetime import datetime
+import pandas as pd
+from ebayscrap import search_shoes, calculate_metrics, clean_price, parse_date
+
+class TestEbayScrap(unittest.TestCase):
+
+    @patch('requests.get')
+    def test_search_shoes(self, mock_get):
+        """Test the search_shoes function with mocked HTTP response"""
+        mock_html = """
+        <div class="s-item__wrapper clearfix">
+            <div class="s-item__title">Test Shoe</div>
+            <span class="s-item__price">$100.00</span>
+            <span class="s-item__ended-date">Sold Nov 1, 2024</span>
+            <a class="s-item__link" href="http://example.com/shoe"></a>
+        </div>
+        """
+        mock_get.return_value = MagicMock(text=mock_html, status_code=200)
+
+        df = search_shoes(sku="12345")
+
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]['Title'], 'Test Shoe')
+        self.assertEqual(df.iloc[0]['Price'], '$100.00')
+        self.assertEqual(df.iloc[0]['Date'], pd.Timestamp("2024-11-01"))
+        self.assertEqual(df.iloc[0]['Link'], 'http://example.com/shoe')
+
+    def test_clean_price(self):
+        """Test the clean_price function"""
+        self.assertEqual(clean_price('$123.45'), 123.45)
+        self.assertEqual(clean_price('€99.99'), 99.99)
+        self.assertEqual(clean_price('Invalid Price'), 0.0)
+
+    def test_parse_date(self):
+        """Test the parse_date function"""
+        self.assertEqual(parse_date('Sold Nov 1, 2024'), datetime(2024, 11, 1))
+        self.assertIsNone(parse_date('Invalid Date'))
+
+    def test_calculate_metrics(self):
+        """Test the calculate_metrics function"""
+        data = {
+            'Price': ['$100.00', '$150.00', '$50.00'],
+            'Date': [datetime(2024, 11, 1), datetime(2024, 10, 1), datetime(2024, 9, 1)]
+        }
+        df = pd.DataFrame(data)
+
+        metrics = calculate_metrics(df)
+
+        self.assertEqual(metrics['average_price'], 100.00)
+        self.assertEqual(metrics['last_sale_price'], 100.00)
+        self.assertEqual(metrics['highest_price'], 150.00)
+        self.assertEqual(metrics['lowest_price'], 50.00)
+        self.assertEqual(metrics['total_sales'], 3)
+        self.assertEqual(metrics['last_90_days_sales'], 2)
+
+if __name__ == '__main__':
+    unittest.main()
