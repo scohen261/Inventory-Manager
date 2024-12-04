@@ -12,7 +12,7 @@ class SneakerProduct:
     model: str
     sku: Optional[str] = None
     retail_price: Optional[float] = None
-    current_price: Optional[float] = None
+    avg_price: Optional[float] = None
     release_date: Optional[str] = None
     
     @classmethod
@@ -20,13 +20,13 @@ class SneakerProduct:
         """Create a SneakerProduct instance from API response data"""
         return cls(
             id=data.get('id', ''),
-            name=data.get('name', ''),
+            name=data.get('title', ''),
             brand=data.get('brand', ''),
-            model=data.get('model', ''),
+            model=data.get('slug', ''),
             sku=data.get('sku'),
-            retail_price=data.get('retailPrice'),
-            current_price=data.get('currentPrice'),
-            release_date=data.get('releaseDate')
+            retail_price=data.get('retail_price'),
+            avg_price=data.get('avg_price'),
+            release_date=data.get('release_date')
         )
 
 class SneakerAPI:
@@ -34,58 +34,57 @@ class SneakerAPI:
         self.base_url = base_url.rstrip('/')
         self.session = requests.Session()
         
-    def get_product(self, product_id: str) -> Optional[SneakerProduct]:
-        """
-        Get detailed information about a specific product by ID.
+    # def get_product(self, product_id: str) -> Optional[SneakerProduct]:
+    #     """
+    #     Get detailed information about a specific product by ID.
         
-        Args:
-            product_id (str): Product ID or slug
+    #     Args:
+    #         product_id (str): Product ID or slug
             
-        Returns:
-            Optional[SneakerProduct]: Product information if found, None if not found
-        """
-        try:
-            url = f"{self.base_url}/product/{product_id}"
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
+    #     Returns:
+    #         Optional[SneakerProduct]: Product information if found, None if not found
+    #     """
+    #     try:
+    #         url = f"{self.base_url}/product/{product_id}"
+    #         response = self.session.get(url, timeout=10)
+    #         response.raise_for_status()
             
-            data = response.json()
-            return SneakerProduct.from_api_response(data)
+    #         data = response.json()
+    #         return SneakerProduct.from_api_response(data)
             
-        except requests.RequestException as e:
-            print(f"Error fetching product {product_id}: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            print(f"Error parsing response for product {product_id}: {e}")
-            return None
+    #     except requests.RequestException as e:
+    #         print(f"Error fetching product {product_id}: {e}")
+    #         return None
+    #     except json.JSONDecodeError as e:
+    #         print(f"Error parsing response for product {product_id}: {e}")
+    #         return None
             
-    def search_products(self, query: str) -> List[SneakerProduct]:
+    def search_products(self, SKU: str) -> List[SneakerProduct]:
         """
         Search for products using a query string.
         
         Args:
-            query (str): Search query (e.g., "Air Jordan 1 Low Diamond Shorts")
+            SKU (str): SKU 
             
         Returns:
             List[SneakerProduct]: List of matching products
         """
         try:
             url = f"{self.base_url}/search"
-            params = {"query": query}
-            
+            params = {"sku": SKU}
             response = self.session.get(url, params=params, timeout=10)
             response.raise_for_status()
             
             data = response.json()
             # Assuming the API returns a list of products in a 'results' field
-            products = data.get('results', [])
+            products = data.get('hits', [])
             return [SneakerProduct.from_api_response(product) for product in products]
             
         except requests.RequestException as e:
-            print(f"Error searching for '{query}': {e}")
+            print(f"Error searching for '{SKU}': {e}")
             return []
         except json.JSONDecodeError as e:
-            print(f"Error parsing search results for '{query}': {e}")
+            print(f"Error parsing search results for '{SKU}': {e}")
             return []
 
 def format_price(price: Optional[float]) -> str:
@@ -103,8 +102,8 @@ def print_product(product: SneakerProduct) -> None:
     print(f"Model: {product.model}")
     if product.sku:
         print(f"SKU: {product.sku}")
-    print(f"Retail Price: {format_price(product.retail_price)}")
-    print(f"Current Price: {format_price(product.current_price)}")
+    print(f"Retail Price: ${product.retail_price}") #retail_price is a string
+    print(f"Average Price: {format_price(product.avg_price)}")
     if product.release_date:
         print(f"Release Date: {product.release_date}")
     print(f"Product ID: {product.id}")
@@ -114,6 +113,7 @@ def main():
     api = SneakerAPI()
     
     # Example 1: Get specific product
+    """ 
     product_id = input("Enter product ID (or press Enter to skip): ").strip()
     if product_id:
         product = api.get_product(product_id)
@@ -121,9 +121,10 @@ def main():
             print_product(product)
         else:
             print(f"Product not found: {product_id}")
+    """
     
     # Example 2: Search for products
-    search_query = input("\nEnter search query (or press Enter to skip): ").strip()
+    search_query = input("\nEnter SKU (or press Enter to skip): ").strip()
     if search_query:
         products = api.search_products(search_query)
         if products:
