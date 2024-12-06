@@ -1,88 +1,82 @@
+import requests
 import tkinter
 from tkinter import ttk
 from tkinter import messagebox
 
-def on_discount_type_select(event):
-    selected_discount_type = discount_type_combobox.get()
-    if selected_discount_type == "None":
-        discount_amount_entry.config(state="disabled")
-    else:
-        discount_amount_entry.config(state="normal")
+API_KEY = 'NYsXWV2Yk4JoLQIpda/lXw==MjudBjgujAQ76mEG'
 
-def on_tax_location_select(event):
-    selected_tax_location = tax_location_combobox.get()
-    if selected_tax_location in ["CT", "NOLA"]:
-        tax_amount_spinbox.config(state="disabled")
+
+def get_tax_rate(zip_code):
+    api_url = f'https://api.api-ninjas.com/v1/salestax?zip_code={zip_code}'
+    response = requests.get(api_url, headers={'X-Api-Key': API_KEY})
+
+    if response.status_code == requests.codes.ok:
+        data = response.json()
+        print("API Response:", data)
+
+        if isinstance(data, list) and len(data) > 0:
+            if 'total_rate' in data[0]:
+                return float(data[0]['total_rate'])
+            else:
+                print("Key 'total_rate' not found in the response.")
+                return None
+        else:
+            print("Unexpected response format.")
+            return None
     else:
-        tax_amount_spinbox.config(state="normal")
+        messagebox.showwarning("Error", f"Failed to retrieve tax info for ZIP {zip_code}")
+        return None
+
 
 def calculate_total_price(show_popup=True):
     retail_value = retail_price_entry.get()
-    discount_amount_value = discount_amount_entry.get()
-    discount_type = discount_type_combobox.get()
+    zip_code = zip_code_entry.get()
 
-   # print("Retail:", retail_value)
-    #print("Discount Amount:", discount_amount_value)
-    #print("Discount Type:", discount_type)
-
-    if retail_value.strip() == '' or discount_type.strip() == '':
-        messagebox.showwarning(title="Error", message="Retail Price and Discount Type are required.")
+    if retail_value.strip() == '' or zip_code.strip() == '':
+        messagebox.showwarning(title="Error", message="Retail Price and Zip Code are required.")
         return
-
-    if discount_type != "None" and discount_amount_entry.cget('state') != 'disabled':
-        if discount_amount_value.strip() == '':
-            messagebox.showwarning(title="Error", message="Discount Amount is required.")
-            return
 
     try:
         retail = float(retail_value)
-        
-        if discount_type != "None" and discount_amount_entry.cget('state') != 'disabled':
-            discount_amount = float(discount_amount_value)
-        else:
-            discount_amount = 0
 
-        tax_location = tax_location_combobox.get()
-        if tax_location == "CT":
-            tax = 6.35
-        elif tax_location == "NOLA":
-            tax = 9.45
-        elif tax_location == "Other" and tax_amount_spinbox.cget('state') != 'disabled':
-            tax = float(tax_amount_spinbox.get())
-        else:
-            tax = 0  # Default tax if not specified
+        # Fetch tax rate based on the zip code
+        tax = get_tax_rate(zip_code)
+        if tax is None:
+            return
 
-        print("Retail Float:", retail)
-        print("Discount Amount Float:", discount_amount)
+        discounted_price = retail
 
-        # Calculating total price
-        if discount_type == "Cash" or discount_type == "Both":
-            discounted_price = retail - discount_amount
-        elif discount_type == "Percent":
-            percentage_discount_amount = (discount_amount / 100) * retail
-            discounted_price = retail - percentage_discount_amount
-        else:
-            discounted_price = retail  # Assuming no discount
-        
-        tax_amount = discounted_price * (tax / 100)
+        # Apply all discounts
+        for discount_type_combobox, discount_amount_entry in discount_entries:
+            discount_type = discount_type_combobox.get()
+            discount_amount_value = discount_amount_entry.get()
+
+            if discount_type and discount_type != "None":
+                discount_amount = float(discount_amount_value) if discount_amount_value.strip() else 0
+
+                if discount_type == "Cash" or discount_type == "Both":
+                    discounted_price -= discount_amount
+                elif discount_type == "Percent":
+                    discounted_price -= (discount_amount / 100) * discounted_price
+
+        # Calculate tax amount and total price
+        tax_amount = discounted_price * tax
         total_price = discounted_price + tax_amount
 
         if show_popup:
-            messagebox.showinfo("Total Price", f"The total price is: {total_price}")
-        return total_price #Return the calculated total price
-    
+            messagebox.showinfo("Total Price", f"The total price is: {total_price:.2f}")
+        return total_price
+
     except ValueError as e:
         print(e)
         messagebox.showwarning(title="Error", message="Please enter valid numbers.")
 
-        
 
 def calculate_break_even():
     total_price = calculate_total_price(show_popup=False)
     if total_price is None:
         return
     try:
-         # Fees for different platforms
         ebay_fee = 0.1325
         final_value_fee = 0.30
         stockx_fee = 0.09
@@ -91,101 +85,90 @@ def calculate_break_even():
         goat_fee = 0.095
         goat_cashout_fee = 0.029
         goat_seller_fee = 5
-        
 
-        # Your break-even calculations
         ebay_break_even = total_price / (1 - ebay_fee) + final_value_fee
         stockx_break_even = (total_price + stockx_shipping_fee) / (1 - stockx_fee - stockx_cashout_fee)
         goat_break_even = (total_price + goat_seller_fee) / (1 - goat_fee - goat_cashout_fee)
 
-
-        messagebox.showinfo("Break Even Prices", f"eBay: {ebay_break_even}\nStockX: {stockx_break_even}\nGoat: {goat_break_even}")
+        messagebox.showinfo(
+            "Break Even Prices",
+            f"eBay: {ebay_break_even:.2f}\nStockX: {stockx_break_even:.2f}\nGoat: {goat_break_even:.2f}"
+        )
 
     except ValueError:
         messagebox.showwarning(title="Error", message="Please enter valid numbers.")
 
-def enter_data():
-    accepted = accept_var.get()
-    
-    if accepted=="Accepted":
-        # User info
-        retail_price = retail_price_entry.get()
-        discount_type = discount_amount_entry.get()
-        
-        if retail_price and discount_type:
-            calculate_break_even() # pass total_price to calculate break even
-        else:
-            tkinter.messagebox.showwarning(title="Error", message="Retail Price and Discount Type are required.")
-    else:
-        tkinter.messagebox.showwarning(title= "Error", message="You have not accepted the terms")
 
+def add_discount():
+    # Add new discount type and discount amount fields
+    discount_type_label = tkinter.Label(discount_frame, text="Discount Type")
+    discount_type_combobox = ttk.Combobox(discount_frame, values=["", "Cash", "Percent", "Both", "None"])
+    discount_amount_label = tkinter.Label(discount_frame, text="Discount Amount")
+    discount_amount_entry = tkinter.Entry(discount_frame)
+
+    # Place the new widgets
+    row_index = len(discount_entries) + 4  # Adjust row index for new entries
+    discount_type_label.grid(row=row_index, column=0)
+    discount_type_combobox.grid(row=row_index + 1, column=0)
+    discount_amount_label.grid(row=row_index, column=1)
+    discount_amount_entry.grid(row=row_index + 1, column=1)
+
+    # Add new fields to the discount_entries list
+    discount_entries.append((discount_type_combobox, discount_amount_entry))
+
+
+# Set up the GUI
 window = tkinter.Tk()
 window.title("Data Entry Form")
 
 frame = tkinter.Frame(window)
 frame.pack()
 
-# Saving User Info
-user_info_frame =tkinter.LabelFrame(frame, text="Retail Entry")
-user_info_frame.grid(row= 0, column=0, padx=20, pady=10)
+# User Info
+user_info_frame = tkinter.LabelFrame(frame, text="Retail Entry")
+user_info_frame.grid(row=0, column=0, padx=20, pady=10)
 
-#Retail price Entry
 retail_price_entry_label = tkinter.Label(user_info_frame, text="Retail Price")
 retail_price_entry_label.grid(row=0, column=0)
 retail_price_entry = tkinter.Entry(user_info_frame)
 retail_price_entry.grid(row=1, column=0)
 
-#Discount Entry
-discount_frame = tkinter.LabelFrame(frame,text="Discount Entry")
+# Discount Entry
+discount_frame = tkinter.LabelFrame(frame, text="Discount Entry")
 discount_frame.grid(row=1, column=0, sticky="news", padx=20, pady=10)
 
-#Discount Type
+# Initial Discount Entry
 discount_type_label = tkinter.Label(discount_frame, text="Discount Type")
 discount_type_combobox = ttk.Combobox(discount_frame, values=["", "Cash", "Percent", "Both", "None"])
+discount_amount_label = tkinter.Label(discount_frame, text="Discount Amount")
+discount_amount_entry = tkinter.Entry(discount_frame)
+
 discount_type_label.grid(row=2, column=0)
 discount_type_combobox.grid(row=3, column=0)
-
-#Discount Amount
-discount_amount_label = tkinter.Label(discount_frame, text="Discount Amount")
 discount_amount_label.grid(row=2, column=1)
-discount_amount_entry = tkinter.Entry(discount_frame)
 discount_amount_entry.grid(row=3, column=1)
 
-for widget in user_info_frame.winfo_children():
-    widget.grid_configure(padx=10, pady=5)
+# List to track discount entries
+discount_entries = [(discount_type_combobox, discount_amount_entry)]
 
-# Tax Info
-courses_frame = tkinter.LabelFrame(frame,text="Tax Entry")
-courses_frame.grid(row=3, column=0, sticky="news", padx=20, pady=10)
+# Add Discount Button
+add_discount_button = tkinter.Button(discount_frame, text="Add Discount", command=add_discount)
+add_discount_button.grid(row=4, column=0, sticky="news", padx=20, pady=10)
 
-#Tax Location
-tax_location_label = tkinter.Label(courses_frame, text="Tax Location")
-tax_location_combobox = ttk.Combobox(courses_frame, values= ["","CT", "NOLA", "NY", "Other"])
-tax_location_label.grid(row=0, column=1)
-tax_location_combobox.grid(row=1, column=1)
-#Tax Amount
-tax_amount_label = tkinter.Label(courses_frame, text="Tax Amount")
-tax_amount_spinbox = tkinter.Spinbox(courses_frame, from_=0, to=2000)
-tax_amount_label.grid(row=0, column=3)
-tax_amount_spinbox.grid(row=1, column=3)
+# Tax Info (Zip Code)
+tax_frame = tkinter.LabelFrame(frame, text="Tax Entry")
+tax_frame.grid(row=3, column=0, sticky="news", padx=20, pady=10)
 
+zip_code_label = tkinter.Label(tax_frame, text="Zip Code")
+zip_code_label.grid(row=0, column=0)
+zip_code_entry = tkinter.Entry(tax_frame)
+zip_code_entry.grid(row=1, column=0)
 
-# Accept terms
-terms_frame = tkinter.LabelFrame(frame, text="Terms & Conditions")
-terms_frame.grid(row=4, column=0, sticky="news", padx=20, pady=10)
+# Calculate Buttons
+calculate_button = tkinter.Button(frame, text="Calculate Cost", command=calculate_total_price)
+calculate_button.grid(row=4, column=0, sticky="news", padx=20, pady=10)
 
-accept_var = tkinter.StringVar(value="Not Accepted")
-terms_check = tkinter.Checkbutton(terms_frame, text= "I accept the terms and conditions.",
-                                  variable=accept_var, onvalue="Accepted", offvalue="Not Accepted")
-terms_check.grid(row=0, column=0)
+break_even_button = tkinter.Button(frame, text="Calculate Break Even", command=calculate_break_even)
+break_even_button.grid(row=5, column=0, sticky="news", padx=20, pady=10)
 
-# Button for Costs
-button = tkinter.Button(frame, text="Calculate Cost", command= calculate_total_price)
-button.grid(row=5, column=0, sticky="news", padx=20, pady=10)
-
-
-# Button for Break even
-button = tkinter.Button(frame, text="Calculate Break Even", command=calculate_break_even)
-button.grid(row=6, column=0, sticky="news", padx=20, pady=10)
- 
 window.mainloop()
