@@ -65,6 +65,7 @@ class SneakerAPI:
         
         Args:
             SKU (str): SKU 
+
             
         Returns:
             List[SneakerProduct]: List of matching products
