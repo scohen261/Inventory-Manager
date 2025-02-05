@@ -1,1 +1,30 @@
+Scanner Notes
+INSTALLING
+==========
 
+ZBar for Windows is distributed with an installer, simply run the installer
+and follow the prompts to install the software.
+
+
+RUNNING
+=======
+
+This version of the package includes *only command line programs*.
+(The graphical interface is scheduled for a future release)
+
+Invoke Start -> Programs -> ZBar Bar Code Reader -> Start ZBar Command Prompt
+to open a shell that has the zbarimg and zbarcam commands available
+(in the PATH).
+
+To start the webcam reader using the default camera, type:
+    zbarcam
+
+To decode an image file, type eg:
+    zbarimg -d examples\barcode.png
+
+For basic command instructions, type:
+    zbarimg --help
+    zbarcam --help
+
+Check the manual for more details.
+Should be able to use phone app
